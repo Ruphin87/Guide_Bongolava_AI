@@ -16,11 +16,12 @@ import 'main.dart';
 // ──────────────────────────────────────────────────────────────
 
 class ChatMessage {
-  final String? text;
-  final Uint8List? imageData;
+  String? text;
+  Uint8List? imageData;
   final bool isUser;
+  bool isStreaming;
 
-  const ChatMessage({this.text, this.imageData, required this.isUser});
+  ChatMessage({this.text, this.imageData, required this.isUser, this.isStreaming = false});
 }
 
 // ──────────────────────────────────────────────────────────────
@@ -151,13 +152,6 @@ class _BongolavaChatState extends State<BongolavaChat> {
 
   // ── Gestion des messages ──────────────────────────────────────
 
-  void _addBotMessage({String? text, Uint8List? imageData}) {
-    setState(() {
-      _messages.add(ChatMessage(text: text, imageData: imageData, isUser: false));
-    });
-    _scrollToBottom();
-  }
-
   void _addUserMessage(String text) {
     setState(() {
       _messages.add(ChatMessage(text: text, isUser: true));
@@ -185,35 +179,50 @@ class _BongolavaChatState extends State<BongolavaChat> {
     _inputController.clear();
     setState(() => _isLoading = true);
 
+    // Message de l'IA, vide au départ : il sera rempli progressivement
+    // pendant que les morceaux de réponse arrivent (effet "streaming").
+    late final ChatMessage botMessage;
+    setState(() {
+      botMessage = ChatMessage(text: '', isUser: false, isStreaming: true);
+      _messages.add(botMessage);
+    });
+
     try {
-      final response = await _chat.sendMessage(Content.text(userText));
+      final stream = _chat.sendMessageStream(Content.text(userText));
+      bool firstChunkReceived = false;
 
-      String? responseText;
-      Uint8List? responseImage;
+      await for (final chunk in stream) {
+        final chunkText = chunk.text;
+        if (chunkText == null || chunkText.isEmpty) continue;
 
-      if (response.candidates.isNotEmpty) {
-        final candidate = response.candidates.first;
-        for (final part in candidate.content.parts) {
-          if (part is TextPart) {
-            responseText = (responseText ?? '') + part.text;
-          } else if (part is InlineDataPart) {
-            responseImage = part.bytes;
-          }
+        if (!firstChunkReceived) {
+          // Dès le tout premier morceau, on quitte l'indicateur "en train de
+          // réfléchir" (3 points) pour laisser place au texte qui défile.
+          firstChunkReceived = true;
+          setState(() => _isLoading = false);
         }
+
+        setState(() {
+          botMessage.text = (botMessage.text ?? '') + chunkText;
+        });
+        _scrollToBottom();
       }
 
-      if (responseText != null || responseImage != null) {
-        _addBotMessage(text: responseText, imageData: responseImage);
-      } else {
-        _addBotMessage(text: "Je n'ai pas pu générer une réponse. Veuillez réessayer. 🙏");
+      if ((botMessage.text ?? '').isEmpty) {
+        setState(() {
+          botMessage.text = "Je n'ai pas pu générer une réponse. Veuillez réessayer. 🙏";
+        });
       }
     } catch (e) {
-      _addBotMessage(
-        text: "⚠️ Une erreur est survenue : ${e.toString()}\n\n"
-              "Vérifiez votre connexion internet ou réessayez plus tard.",
-      );
+      setState(() {
+        botMessage.text = "⚠️ Une erreur est survenue : ${e.toString()}\n\n"
+            "Vérifiez votre connexion internet ou réessayez plus tard.";
+      });
     } finally {
-      setState(() => _isLoading = false);
+      setState(() {
+        _isLoading = false;
+        botMessage.isStreaming = false;
+      });
     }
   }
 
@@ -268,11 +277,8 @@ class _BongolavaChatState extends State<BongolavaChat> {
     return ListView.builder(
       controller: _scrollController,
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-      itemCount: _messages.length + (_isLoading ? 1 : 0),
+      itemCount: _messages.length,
       itemBuilder: (context, index) {
-        if (_isLoading && index == _messages.length) {
-          return _buildTypingIndicator(cs);
-        }
         return _buildMessageBubble(_messages[index], cs);
       },
     );
@@ -389,6 +395,8 @@ class _BongolavaChatState extends State<BongolavaChat> {
     }
 
     // Message IA : pas de bulle, façon Gemini — icône + texte plein largeur
+    final isThinking = message.isStreaming && (message.text == null || message.text!.isEmpty);
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 22),
       child: Row(
@@ -397,11 +405,13 @@ class _BongolavaChatState extends State<BongolavaChat> {
           _brandIcon(size: 26),
           const SizedBox(width: 12),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (message.text != null && message.text!.isNotEmpty)
-                  _buildFormattedText(message.text!, color: cs.onSurface),
+            child: isThinking
+                ? const _TypingDots()
+                : Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (message.text != null && message.text!.isNotEmpty)
+                        _buildFormattedText(message.text!, color: cs.onSurface),
                 if (message.text != null && message.imageData != null)
                   const SizedBox(height: 10),
                 if (message.imageData != null) _buildGeneratedImage(message.imageData!, cs),
@@ -482,21 +492,6 @@ class _BongolavaChatState extends State<BongolavaChat> {
     );
   }
 
-  /// Indicateur "en train d'écrire" à 3 points animés (façon Gemini)
-  Widget _buildTypingIndicator(ColorScheme cs) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 18),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _brandIcon(size: 26),
-          const SizedBox(width: 12),
-          const _TypingDots(),
-        ],
-      ),
-    );
-  }
-
   // ── Barre de saisie ─────────────────────────────────────────────
 
   Widget _buildInputBar(ColorScheme cs) {
@@ -557,24 +552,14 @@ class _BongolavaChatState extends State<BongolavaChat> {
     );
   }
 
-  /// Icône de la marque : pastille avec dégradé vert → rouge (Madagascar)
+  /// Icône de la marque : votre logo "Bongolava Guide AI" (version carrée)
   Widget _brandIcon({required double size}) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: const BoxDecoration(
-        shape: BoxShape.circle,
-        gradient: LinearGradient(
-          colors: kBrandGradient,
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-      ),
-      child: Center(
-        child: Text(
-          '🇲🇬',
-          style: TextStyle(fontSize: size * 0.5),
-        ),
+    return ClipOval(
+      child: Image.asset(
+        'assets/icon/app_icon.png',
+        width: size,
+        height: size,
+        fit: BoxFit.cover,
       ),
     );
   }
