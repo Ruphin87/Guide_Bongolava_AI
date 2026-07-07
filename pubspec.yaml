@@ -1,0 +1,35 @@
+name: bongolava_ai
+description: Guide touristique IA pour la région du Bongolava, Madagascar.
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Firebase Core - obligatoire pour toute intégration Firebase
+  firebase_core: ^3.6.0
+
+  # Firebase AI (anciennement Vertex AI) - SDK officiel pour Gemini via Firebase
+  firebase_ai: ^2.0.0
+
+  # Pour afficher les images en mémoire (Uint8List) reçues de l'IA
+  # (déjà inclus dans Flutter, mais on s'assure d'avoir dart:typed_data)
+
+  # Icônes Material
+  cupertino_icons: ^1.0.8
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true
+
+  # Si vous souhaitez ajouter un logo ou image de fond locale
+  # assets:
+  #   - assets/images/
