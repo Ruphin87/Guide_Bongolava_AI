@@ -1,13 +1,13 @@
 {
   "project_info": {
-    "project_number": "955220275146",
-    "project_id": "bongolava-guide-ia",
-    "storage_bucket": "bongolava-guide-ia.firebasestorage.app"
+    "project_number": "228455590136",
+    "project_id": "bongolava-guide-ia-v2",
+    "storage_bucket": "bongolava-guide-ia-v2.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:955220275146:android:44dca9ebece17a67aaa933",
+        "mobilesdk_app_id": "1:228455590136:android:40a5aff636bcd4c35ff30d",
         "android_client_info": {
           "package_name": "com.example.bongolava_ai"
         }
@@ -15,26 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyDBr01EXwNunz1GofWOppyGAcsmd3oORew"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": []
-        }
-      }
-    },
-    {
-      "client_info": {
-        "mobilesdk_app_id": "1:955220275146:android:0fbbc99c6cecdb91aaa933",
-        "android_client_info": {
-          "package_name": "com.ruphin.bongolava_ai"
-        }
-      },
-      "oauth_client": [],
-      "api_key": [
-        {
-          "current_key": "AIzaSyDBr01EXwNunz1GofWOppyGAcsmd3oORew"
+          "current_key": "AIzaSyAHnkHQnNOaOkjGMXqQDXZT7cYu6hdmXk0"
         }
       ],
       "services": {

@@ -22,6 +22,12 @@ dependencies:
   # Icônes Material
   cupertino_icons: ^1.0.8
 
+  # Pour ouvrir le téléphone/Facebook/LinkedIn/GitHub depuis "À propos"
+  url_launcher: ^6.3.1
+
+  # Pour sauvegarder la limite de messages quotidienne localement
+  shared_preferences: ^2.3.2
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
